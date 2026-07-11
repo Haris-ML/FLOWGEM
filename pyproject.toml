@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "flowgem"
+version = "0.1.0"
+description = "Nonparametric generative sampling for MAR missing data via approximate Wasserstein gradient flows"
+authors = ["Muhammad Haris Mumtaz"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)"
+]
