@@ -8,7 +8,17 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
+torch = {version = "^2.13.0", source = "pytorch-cpu"}
+numpy = "^2.5.1"
+scikit-learn = "^1.9.0"
+joblib = "^1.5.3"
+tqdm = "^4.68.4"
 
+
+[[tool.poetry.source]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
