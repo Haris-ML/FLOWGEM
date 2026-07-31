@@ -5,6 +5,7 @@ selecting bandwidths, and evolving the particle ensemble over time — using the
 solver from `optim` and the bandwidth utilities from `bandwidth`.
 """
 
+import logging
 import os
 
 import numpy as np
@@ -15,6 +16,8 @@ from tqdm.auto import tqdm
 
 from flowgem.optim import opt_wb
 from flowgem.bandwidth import sigma_heuristic_pairs, evaluate_sigma
+
+logger = logging.getLogger(__name__)
 
 def sample_flowgem(X0, X_obs, M, T=1000, eta=0.01, grad_tol=0.01, min_iter=10, sigma_fix=None, sigma_vals=None, cv_every=10, dtype=torch.float64):
     # device and dtype are taken from / controlled by the caller,
@@ -47,7 +50,7 @@ def sample_flowgem(X0, X_obs, M, T=1000, eta=0.01, grad_tol=0.01, min_iter=10, s
     if sigma_fix is None:
         sigma_heur = sigma_heuristic_pairs(Xt)
         sigma_current = {m: sigma_heur for m in mask_idx}
-        print("heuristic sigma:", sigma_heur)
+        logger.info("Heuristic bandwidth sigma: %s", sigma_heur)
     else:
         sigma_current = {m: sigma_fix for m in mask_idx}
 
@@ -62,15 +65,14 @@ def sample_flowgem(X0, X_obs, M, T=1000, eta=0.01, grad_tol=0.01, min_iter=10, s
         for m in mask_idx:
             if run_cv:
                 # choose sigma by cross validation (see App. I.1 in MIRI paper)
-                print(f"Running CV: m = {m}, size = {zpi[m].shape[0]}")
-                print(f"Possible values: {sigma_vals}")
+                logger.debug("Running CV: pattern=%s, size=%s", m, zpi[m].shape[0])
+                logger.debug("Candidate sigmas: %s", sigma_vals)
                 sigma_scores = Parallel(n_jobs=n_jobs)(
                     delayed(evaluate_sigma)(zpi[m], Xt[:, mask_idx[m]], sig, splits_pi[m], splits_rho)
                     for sig in sigma_vals
                 )
                 sigma_current[m] = sigma_vals[np.argmax(sigma_scores)]
-                print(f"Chosen sigma: {sigma_current[m]}")
-                print()
+                logger.debug("Chosen sigma: %s", sigma_current[m])
 
             # optimize (w,b) according to the objective in equation (8)
             grads[m] = opt_wb(zpi[m], Xt[:, mask_idx[m]], Xt[:, mask_idx[m]], sigma_current[m], dtype=dtype)[0]
@@ -88,11 +90,11 @@ def sample_flowgem(X0, X_obs, M, T=1000, eta=0.01, grad_tol=0.01, min_iter=10, s
         # early stopping and eta halving dependent on mean grad value
         mean_grad = (torch.mean(torch.norm(grad_sum, dim=1)) / torch.mean(torch.norm(Xt, dim=1))).item()
         if mean_grad < grad_tol and t+1 > min_iter:
-            print(f"Stopped early after {t+1} iterations since mean grad {mean_grad:.4f} is below grad_tol={grad_tol}.")
+            logger.info("Stopped early after %d iterations (mean grad %.4f < grad_tol %s).", t+1, mean_grad, grad_tol)
             break
         if mean_grad > mean_grad_prev:
             eta = eta*0.5
-            print(f"Step size eta is halved to {eta} since mean grad has increased.")
+            logger.info("Mean gradient increased; halving step size eta to %s.", eta)
         mean_grad_prev = mean_grad
 
     return Xhats
