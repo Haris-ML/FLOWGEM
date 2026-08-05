@@ -117,3 +117,134 @@ def test_generate_trajectory_returns_list():
 
     # the last snapshot equals the default (final-only) output
     assert torch.allclose(traj[-1], final)
+
+#------- Smoke Test for Heuristic Sigma -----------------------------------
+
+def test_default_sigma_heuristic_runs():
+    """The default sigma=None path (median heuristic) runs end-to-end.
+
+    This is a smoke test: the heuristic is stochastic, so we check that the
+    default path produces a valid complete sample, not exact values.
+    """
+    X = make_incomplete()
+    # sigma is None by default -> exercises the heuristic branch in core
+    model = FlowGEM(T=5, random_state=0)      # note: no sigma given
+    X_out = model.fit(X).generate()
+
+    assert X_out.shape == X.shape
+    assert not torch.isnan(X_out).any()
+
+# ---- shape / size edge cases ----------------------------------------------
+
+def test_tiny_dataset():
+    """A very small dataset should still produce a complete sample."""
+    torch.manual_seed(0)
+    X = torch.randn(6, 3, dtype=torch.float64)
+    X[0, 1] = float("nan")
+    X[3, 2] = float("nan")
+
+    model = FlowGEM(T=5, sigma=1.0, init="sample", random_state=0)
+    X_out = model.fit(X).generate()
+
+    assert X_out.shape == X.shape
+    assert not torch.isnan(X_out).any()
+
+
+def test_few_missing_patterns():
+    """A dataset with very few distinct missingness patterns must work.
+
+    Every column keeps some observed values (no column is fully missing).
+    """
+    torch.manual_seed(0)
+    X = torch.randn(30, 3, dtype=torch.float64)
+    # two patterns only: first half misses column 1, second half misses column 2
+    X[:15, 1] = float("nan")
+    X[15:, 2] = float("nan")
+
+    model = FlowGEM(T=5, sigma=1.0, init="sample", random_state=0)
+    X_out = model.fit(X).generate()
+
+    assert X_out.shape == X.shape
+    assert not torch.isnan(X_out).any()
+
+
+def test_high_missingness():
+    """A high fraction of missing values (with each column still partly
+    observed) should work."""
+    torch.manual_seed(0)
+    X = torch.randn(40, 3, dtype=torch.float64)
+    mask = torch.rand(40, 3) > 0.6       # ~60% missing
+    mask[:, 0] = True                    # keep column 0 fully observed
+    mask[0, 1] = True                    # ensure column 1 has >=1 observed
+    mask[0, 2] = True                    # ensure column 2 has >=1 observed
+    X[~mask] = float("nan")
+
+    model = FlowGEM(T=5, sigma=1.0, init="sample", random_state=0)
+    X_out = model.fit(X).generate()
+
+    assert X_out.shape == X.shape
+    assert not torch.isnan(X_out).any()
+
+# ---- initialisation error branches ----------------------------------------
+
+def test_unknown_init_raises():
+    """An unrecognised init string must raise a clear error."""
+    X = make_incomplete()
+    with pytest.raises(ValueError):
+        FlowGEM(init="not_a_real_mode").fit(X)
+
+
+def test_init_array_wrong_shape_raises():
+    """A supplied init array of the wrong shape must be rejected."""
+    X = make_incomplete(n=40, d=3)
+    wrong_X0 = torch.zeros(10, 3, dtype=torch.float64)   # wrong number of rows
+    with pytest.raises(ValueError):
+        FlowGEM(init=wrong_X0).fit(X)
+
+
+def test_sample_init_empty_column_raises():
+    """init='sample' with a fully-missing column cannot sample, so it must
+    raise a clear error rather than fail silently."""
+    torch.manual_seed(0)
+    X = torch.randn(20, 3, dtype=torch.float64)
+    X[:, 1] = float("nan")            # column 1 has no observed values
+    with pytest.raises(ValueError):
+        FlowGEM(init="sample").fit(X)
+
+#-------- infinite value in data -------------------------------
+
+def test_infinite_value_raises():
+    """Infinite values in the input are rejected with a clear error,
+    rather than silently corrupting the output."""
+    torch.manual_seed(0)
+    X = torch.randn(30, 3, dtype=torch.float64)
+    X[0, 1] = float("nan")             # a genuine missing value (allowed)
+    X[5, 0] = float("inf")             # an infinite value (not allowed)
+
+    with pytest.raises(ValueError):
+        FlowGEM(init="sample").fit(X)
+
+# ---- cross-validation path ------------------------------------------------
+
+def test_cross_validation_sigma_runs():
+    """Passing a list of candidate sigmas triggers the cross-validation path.
+
+    Smoke test: CV selection is exercised end-to-end; we check that a valid
+    complete sample is produced, not exact values. Data is kept to few
+    patterns with many rows each so the 3-fold split is well-defined.
+    """
+    torch.manual_seed(0)
+    # 60 rows, only column 1 sometimes missing -> few patterns, many rows each
+    X = torch.randn(60, 3, dtype=torch.float64)
+    X[:20, 1] = float("nan")           # first 20 rows miss column 1
+
+    model = FlowGEM(
+        T=5,
+        sigma=[0.5, 1.0, 2.0],         # a list -> cross-validation
+        init="sample",
+        random_state=0,
+    )
+    X_out = model.fit(X).generate()
+
+    assert X_out.shape == X.shape
+    assert not torch.isnan(X_out).any()

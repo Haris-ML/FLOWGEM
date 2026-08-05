@@ -102,6 +102,11 @@ class FlowGEM:
                 "X_incomplete has no NaN values; nothing is marked as missing. "
                 "Mark missing entries with NaN."
             )
+        if torch.isinf(X).any():
+            raise ValueError(
+                "X_incomplete contains infinite values; only finite values "
+                "and NaN (for missing entries) are supported."
+            )
 
         # observation mask: 1 = observed, 0 = missing  (code's convention)
         self.mask_ = (~torch.isnan(X)).to(self.dtype)
