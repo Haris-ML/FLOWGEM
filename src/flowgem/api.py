@@ -5,6 +5,7 @@ The user supplies a single incomplete array with NaN marking missing entries;
 the observation mask and the particle initialisation are handled internally.
 """
 
+import numpy as np
 import torch
 
 from flowgem.core import sample_flowgem
@@ -29,9 +30,9 @@ class FlowGEM:
         Kernel bandwidth. If None, a median heuristic is used; a float fixes
         the bandwidth; a list triggers cross-validation over the candidates.
     init : {"mice", "sample"} or array-like, default="mice"
-        How the initial particles are constructed. "mice" imputes with a
-        MICE-style imputer; "sample" resamples observed values column-wise;
-        an array is used directly as the initialisation.
+        How the initial particles are constructed. "mice" imputes with the 
+        hyperimpute MICE implementation;; "sample" resamples observed values 
+        column-wise; an array is used directly as the initialisation.
     grad_tol : float, default=0.01
         Early-stopping tolerance on the relative gradient norm.
     min_iter : int, default=10
@@ -137,13 +138,16 @@ class FlowGEM:
                 )
             return X0
 
-        # case 2: MICE (default), via scikit-learn's IterativeImputer
+        # case 2: MICE (default), via the hyperimpute package
         if init == "mice":
-            from sklearn.experimental import enable_iterative_imputer  # noqa: F401
-            from sklearn.impute import IterativeImputer
+            from hyperimpute.plugins.imputers import Imputers
 
-            imputer = IterativeImputer(max_iter=10, random_state=self.random_state)
+            kwargs = {}
+            if self.random_state is not None:
+                kwargs["random_state"] = self.random_state
+            imputer = Imputers().get("mice", **kwargs)
             X0_np = imputer.fit_transform(X.cpu().numpy())
+            X0_np = np.asarray(X0_np, dtype=float).copy()
             return torch.as_tensor(X0_np, dtype=self.dtype)
 
         # case 3: column-wise resampling of observed values (paper's simulation init)

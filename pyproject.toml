@@ -13,6 +13,7 @@ numpy = "^2.5.1"
 scikit-learn = "^1.9.0"
 joblib = "^1.5.3"
 tqdm = "^4.68.4"
+hyperimpute = "^0.1.17"
 
 
 [[tool.poetry.source]]
