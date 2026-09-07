@@ -92,7 +92,7 @@ def sample_flowgem(X0, X_obs, M, T=1000, eta=0.01, grad_tol=0.01, min_iter=10, s
         if mean_grad < grad_tol and t+1 > min_iter:
             logger.info("Stopped early after %d iterations (mean grad %.4f < grad_tol %s).", t+1, mean_grad, grad_tol)
             break
-        if mean_grad > mean_grad_prev:   # pragma: no cover
+        if mean_grad > mean_grad_prev:
             eta = eta*0.5
             logger.info("Mean gradient increased; halving step size eta to %s.", eta)
         mean_grad_prev = mean_grad
