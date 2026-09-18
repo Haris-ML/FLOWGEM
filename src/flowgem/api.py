@@ -31,7 +31,7 @@ class FlowGEM:
         the bandwidth; a list triggers cross-validation over the candidates.
     init : {"mice", "sample"} or array-like, default="mice"
         How the initial particles are constructed. "mice" imputes with the 
-        hyperimpute MICE implementation;; "sample" resamples observed values 
+        hyperimpute MICE implementation; "sample" resamples observed values 
         column-wise; an array is used directly as the initialisation.
     grad_tol : float, default=0.01
         Early-stopping tolerance on the relative gradient norm.
@@ -53,10 +53,10 @@ class FlowGEM:
 
     Examples
     --------
-    >>> import torch
+    >>> import numpy as np
     >>> from flowgem import FlowGEM
-    >>> X = torch.randn(100, 3)
-    >>> X[0, 1] = float("nan")           # mark a missing value
+    >>> X = np.random.default_rng(0).standard_normal((100, 3))
+    >>> X[0, 1] = np.nan                  # mark a missing value
     >>> model = FlowGEM(T=1000, random_state=0)
     >>> X_complete = model.fit(X).generate()
     """
@@ -185,7 +185,7 @@ class FlowGEM:
 
         Returns
         -------
-        torch.Tensor or list of torch.Tensor
+        numpy.ndarray or list of numpy.ndarray
             The final sample of shape (n, d), or the full trajectory if
             return_trajectory is True.
             
