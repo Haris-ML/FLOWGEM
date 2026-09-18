@@ -216,7 +216,7 @@ class FlowGEM:
             dtype=self.dtype,
         )
 
-        # return the full trajectory or just the final snapshot
+        # return the full trajectory or just the final snapshot (as numpy arrays)
         if return_trajectory:
-            return [torch.as_tensor(x, dtype=self.dtype) for x in Xhats]
-        return torch.as_tensor(Xhats[-1], dtype=self.dtype)
+            return [np.asarray(x) for x in Xhats]
+        return np.asarray(Xhats[-1])

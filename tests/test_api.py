@@ -31,7 +31,7 @@ def test_fit_generate_returns_complete_sample():
     X_out = model.fit(X).generate()
 
     assert X_out.shape == X.shape
-    assert not torch.isnan(X_out).any()
+    assert not np.isnan(X_out).any()
 
 
 def test_fit_returns_self():
@@ -58,7 +58,7 @@ def test_init_modes_produce_complete_X0(init):
     """Both string init modes yield an X0 with no missing values."""
     X = make_incomplete()
     model = FlowGEM(init=init, random_state=0).fit(X)
-    assert not torch.isnan(model.X0_).any()
+    assert not np.isnan(model.X0_).any()
     assert model.X0_.shape == X.shape
 
 
@@ -96,7 +96,7 @@ def test_random_state_is_reproducible():
     X = make_incomplete()
     out1 = FlowGEM(T=5, sigma=1.0, random_state=42).fit(X).generate()
     out2 = FlowGEM(T=5, sigma=1.0, random_state=42).fit(X).generate()
-    assert torch.allclose(out1, out2)
+    assert np.allclose(out1, out2)
 
 
 # ---- trajectory option ----------------------------------------------------
@@ -116,7 +116,7 @@ def test_generate_trajectory_returns_list():
     assert all(snap.shape == X.shape for snap in traj)
 
     # the last snapshot equals the default (final-only) output
-    assert torch.allclose(traj[-1], final)
+    assert np.allclose(traj[-1], final)
 
 #------- Smoke Test for Heuristic Sigma -----------------------------------
 
@@ -132,7 +132,7 @@ def test_default_sigma_heuristic_runs():
     X_out = model.fit(X).generate()
 
     assert X_out.shape == X.shape
-    assert not torch.isnan(X_out).any()
+    assert not np.isnan(X_out).any()
 
 # ---- shape / size edge cases ----------------------------------------------
 
@@ -147,7 +147,7 @@ def test_tiny_dataset():
     X_out = model.fit(X).generate()
 
     assert X_out.shape == X.shape
-    assert not torch.isnan(X_out).any()
+    assert not np.isnan(X_out).any()
 
 
 def test_few_missing_patterns():
@@ -165,7 +165,7 @@ def test_few_missing_patterns():
     X_out = model.fit(X).generate()
 
     assert X_out.shape == X.shape
-    assert not torch.isnan(X_out).any()
+    assert not np.isnan(X_out).any()
 
 
 def test_high_missingness():
@@ -183,7 +183,7 @@ def test_high_missingness():
     X_out = model.fit(X).generate()
 
     assert X_out.shape == X.shape
-    assert not torch.isnan(X_out).any()
+    assert not np.isnan(X_out).any()
 
 # ---- initialisation error branches ----------------------------------------
 
@@ -247,4 +247,4 @@ def test_cross_validation_sigma_runs():
     X_out = model.fit(X).generate()
 
     assert X_out.shape == X.shape
-    assert not torch.isnan(X_out).any()
+    assert not np.isnan(X_out).any()
