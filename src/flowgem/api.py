@@ -89,7 +89,8 @@ class FlowGEM:
         Raises
         ------
         ValueError
-            If the input is not 2D, or contains no NaN (nothing missing).
+            If the input is not 2D, contains no NaN (nothing missing), or
+            contains infinite values.
         """
         # accept numpy arrays, lists, or tensors; work in the chosen dtype
         X = torch.as_tensor(X_incomplete, dtype=self.dtype)
@@ -188,7 +189,11 @@ class FlowGEM:
         numpy.ndarray or list of numpy.ndarray
             The final sample of shape (n, d), or the full trajectory if
             return_trajectory is True.
-            
+
+        Raises
+        ------
+        RuntimeError
+            If called before fit().
         """
         if not hasattr(self, "X0_"):
             raise RuntimeError("Call fit(...) before generate().")

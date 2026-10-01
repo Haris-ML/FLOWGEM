@@ -20,8 +20,48 @@ from flowgem.bandwidth import sigma_heuristic_pairs, evaluate_sigma
 logger = logging.getLogger(__name__)
 
 def sample_flowgem(X0, X_obs, M, T=1000, eta=0.01, grad_tol=0.01, min_iter=10, sigma_fix=None, sigma_vals=None, cv_every=10, dtype=torch.float64):
+    """Evolve a particle ensemble along the approximate Wasserstein gradient flow.
+
+    This is the core sampler. It extracts the distinct missingness patterns,
+    selects the kernel bandwidth, and iteratively updates the particles using
+    a per-pattern local-linear velocity estimate (Equation 9), until the final
+    time ``T`` or early stopping is reached.
+
+    Parameters
+    ----------
+    X0 : torch.Tensor of shape (n, d)
+        Initial particle ensemble (a complete array, no NaN).
+    X_obs : torch.Tensor of shape (n, d)
+        Observed data, with missing entries filled by zero.
+    M : torch.Tensor of shape (n, d)
+        Observation mask; 1 marks an observed entry, 0 a missing one.
+    T : int, default=1000
+        Maximum number of gradient-flow steps.
+    eta : float, default=0.01
+        Step size of the forward-Euler update.
+    grad_tol : float, default=0.01
+        Early-stopping tolerance on the relative gradient norm.
+    min_iter : int, default=10
+        Minimum number of steps before early stopping may trigger.
+    sigma_fix : float or None, default=None
+        Fixed kernel bandwidth. If None, a median heuristic is used (unless
+        ``sigma_vals`` is given).
+    sigma_vals : list of float or None, default=None
+        Candidate bandwidths for cross-validation. If given, the bandwidth is
+        re-selected by CV every ``cv_every`` steps.
+    cv_every : int, default=10
+        How often (in steps) to re-run bandwidth cross-validation.
+    dtype : torch.dtype, default=torch.float64
+        Numerical precision used throughout.
+
+    Returns
+    -------
+    list of numpy.ndarray
+        The per-step snapshots of the particle ensemble; the last element is
+        the final generated sample.
+    """
     # device and dtype are taken from / controlled by the caller,
-    # rather than a module-level global (which the reference used)
+    ...
     device = X0.device 
 
     Xt = X0.clone().to(dtype = dtype, device = device)

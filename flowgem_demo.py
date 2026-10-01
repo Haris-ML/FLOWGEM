@@ -28,7 +28,7 @@ from flowgem import FlowGEM
 # Demo settings  (fast defaults so it runs quickly in a live meeting)
 # ---------------------------------------------------------------------------
 N = 600          # number of samples
-T = 600          # number of gradient-flow steps (increase for a nicer plot)
+T = 200          # number of gradient-flow steps (increase for a nicer plot)
 SEED = 0
 
 # Show the library's internal logging (demonstrates the logging we added).
