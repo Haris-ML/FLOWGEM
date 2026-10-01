@@ -2,9 +2,9 @@
 
 **Generative sampling for missing data under MAR, via approximate Wasserstein gradient flows.**
 
-[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)]()
-[![Python](https://img.shields.io/badge/python-3.12-blue)]()
-[![License](https://img.shields.io/badge/license-MIT-green)]()
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/Haris-ML/FLOWGEM)
+[![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/Haris-ML/FLOWGEM/blob/package/LICENSE)
 
 <!-- Uncomment once GitHub Actions CI is green (Week 8):
 [![Tests](https://github.com/Haris-ML/FLOWGEM/actions/workflows/tests.yml/badge.svg)](https://github.com/Haris-ML/FLOWGEM/actions)
@@ -106,4 +106,4 @@ If you use this package in your research, please cite the paper:
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file.
+This project is licensed under the MIT License — see the [LICENSE](https://github.com/Haris-ML/FLOWGEM/blob/package/LICENSE) file.

@@ -2,7 +2,7 @@
 
 This guide covers how to use FLOWGEM in practice: basic use, working with
 missing data, choosing hyperparameters, initialisation, and inspecting the
-gradient flow. For a quick overview, see the [README](../README.md).
+gradient flow.
 
 ## Basic usage
 
