@@ -4,7 +4,7 @@
 
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/Haris-ML/FLOWGEM)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
-[![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/Haris-ML/FLOWGEM/blob/package/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/Haris-ML/FLOWGEM/blob/main/LICENSE)
 
 [![Tests](https://github.com/Haris-ML/FLOWGEM/actions/workflows/ci.yml/badge.svg)](https://github.com/Haris-ML/FLOWGEM/actions)
 
@@ -36,7 +36,7 @@ pip install flowgem
 Or install the latest development version from GitHub:
 
 ```bash
-pip install git+https://github.com/Haris-ML/FLOWGEM.git@package
+pip install git+https://github.com/Haris-ML/FLOWGEM.git
 ```
 
 ## Quick start
@@ -104,4 +104,4 @@ If you use this package in your research, please cite the paper:
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](https://github.com/Haris-ML/FLOWGEM/blob/package/LICENSE) file.
+This project is licensed under the MIT License — see the [LICENSE](https://github.com/Haris-ML/FLOWGEM/blob/main/LICENSE) file.
