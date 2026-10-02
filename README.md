@@ -6,9 +6,7 @@
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/Haris-ML/FLOWGEM/blob/package/LICENSE)
 
-<!-- Uncomment once GitHub Actions CI is green (Week 8):
-[![Tests](https://github.com/Haris-ML/FLOWGEM/actions/workflows/tests.yml/badge.svg)](https://github.com/Haris-ML/FLOWGEM/actions)
--->
+[![Tests](https://github.com/Haris-ML/FLOWGEM/actions/workflows/ci.yml/badge.svg)](https://github.com/Haris-ML/FLOWGEM/actions)
 
 ## What is FLOWGEM?
 
