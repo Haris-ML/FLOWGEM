@@ -30,3 +30,8 @@ dev = [
     "pytest (>=9.1.1,<10.0.0)",
     "pytest-cov (>=7.1.0,<8.0.0)"
 ]
+docs = [
+    "myst-nb (>=1.4.0,<2.0.0)",
+    "sphinx-autoapi (>=3.8.1,<4.0.0)",
+    "sphinx-rtd-theme (>=3.1.0,<4.0.0)"
+]

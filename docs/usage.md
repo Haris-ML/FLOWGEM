@@ -174,6 +174,10 @@ This is useful for:
 - **Diagnostics** — checking how quickly the flow settles, or whether early
   stopping kicked in before `T` steps.
 
-<!-- Animation to embed here once Sphinx is set up (Day 4-5):
-![FLOWGEM flow](_static/flow.gif)
--->
+## The flow in action
+
+The animation below shows the particle ensemble flowing toward the target
+distribution over the gradient-flow iterations — the green particles
+(FLOWGEM) gradually matching the ground-truth distribution.
+
+![FLOWGEM flow](_static/flowgem_flow.gif)
