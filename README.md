@@ -10,20 +10,12 @@
 
 ## What is FLOWGEM?
 
-FLOWGEM takes a dataset with missing values and generates a complete
-dataset drawn from the same distribution. Unlike imputation methods that
-fill each missing cell with a single "best guess", FLOWGEM recovers the
-full data distribution — preserving variances and correlations — so that
-downstream analyses (means, quantiles, correlations) remain unbiased.
+FLOWGEM recieves a dataset with missing values and generates a complete dataset sampled from the same distribution. It recovers the complete distribution of the data while preserving variances and correlations which keeps downstream analyses like means, quantiles, and correlations unbiased.
 
-It targets data that is **Missing at Random (MAR)**, including the hard
-non-monotone case, and is nonparametric: it makes no assumption about the
-shape of your data. Under the hood it uses an approximate Wasserstein
-gradient flow that iteratively transports a particle ensemble toward the
-target distribution.
+It targets data which is **Missing at Random (MAR)**, including non-monotone MAR. It is nonparametric and makes no assumption about the shape of your data. Under the hood it uses approximate Wasserstein gradient flow which iteratively transports a particle ensemble towards target distribution.
 
 > **Note:** FLOWGEM currently supports **continuous features only**.
-> Support for categorical and mixed-type data is planned as future work.
+> Support for categorical and mixed type data is future work.
 
 ## Installation
 
@@ -58,18 +50,15 @@ model = FlowGEM(T=1000)
 X_complete = model.fit(X).generate()
 ```
 
-`X_complete` is a fully observed array (no NaNs) drawn from the estimated
-data distribution.
+`X_complete` is a fully observed array (without missing value) which is drawn from estimated data distribution.
 
 ## Features
 
-- **Generative, not just imputation** — recovers the full data distribution,
-  preserving variances and correlations.
-- **Handles non-monotone MAR** — works with arbitrary, scattered missingness
-  patterns.
-- **Nonparametric** — no assumption about the shape of your data.
-- **scikit-learn-style API** — familiar `fit` / `generate` interface.
-- **Tuning-lean** — sensible defaults; a single heuristic sets the bandwidth.
+- **Generative**:- generate entire dataset from the full data distribution while preserving variances and correlations.
+- **Handles non-monotone MAR**:- works with arbitrary, scattered missingness patterns.
+- **Nonparametric** :- No assumption about the shape of your data.
+- **scikit-learn-style API**:- familiar `fit` / `generate` interface.
+- **Tuning-lean**:- sensible defaults; bandwidth is set from a single heuristic
 
 ## Key parameters
 
@@ -81,16 +70,16 @@ data distribution.
 
 ## Documentation
 
-Full documentation is available at [Read the Docs](https://flowgem.readthedocs.io).
+Comprehensive and detailed documentation is available at [Read the Docs](https://flowgem.readthedocs.io).
 
 ## Citation
 
-FLOWGEM implements the method introduced in:
+The FLOWGEM method is based on:
 
 > Kremling, G., Näf, J., & Lederer, J. (2026). *Generative Modeling under
 > Non-Monotonic MAR Missingness via Approximate Wasserstein Gradient Flows.*
 
-If you use this package in your research, please cite the paper:
+While using the package in course of your research, please cite this paper:
 
 ```bibtex
 @article{kremling2026flowgem,
