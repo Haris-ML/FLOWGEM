@@ -1,7 +1,7 @@
 """Golden (regression) tests for opt_wb.
 
 These tests verify that the refactored implementation in `flowgem.optim`
-reproduces the original reference implementation exactly. This guards the
+reproduces the original reference implementation EXACTLY. This guards the
 refactoring: the code was relocated, but its behaviour must not change.
 """
 

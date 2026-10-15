@@ -1,8 +1,9 @@
 """Bandwidth (sigma) selection utilities for FLOWGEM.
 
-Everything related to choosing the RBF kernel bandwidth sigma lives here:
-computing pairwise distances, the median heuristic for a quick data-adaptive
-estimate, and cross-validation scoring of a candidate sigma.
+Everything related to choosing the RBF kernel bandwidth sigma can be found here.
+It includes computing pairwise distances, median heuristic for a quick data-adaptive
+estimate, and CV (cross validation) scoring of candidate sigma.
+These functions are internally used by :class:`flowgem.FlowGEM`. you do not need to call them directly.
 """
 
 import torch

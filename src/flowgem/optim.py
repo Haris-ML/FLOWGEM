@@ -1,4 +1,8 @@
-"""Local linear system solver for the FLOWGEM velocity field."""
+"""Local linear system solver for the FLOWGEM velocity field.
+
+This module is used internally by :class:`flowgem.FlowGEM`. It computes transport
+velocity at each gradient-flow step. You normally do not need to call it directly.
+"""
 
 import torch
 

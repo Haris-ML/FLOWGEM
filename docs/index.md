@@ -6,7 +6,6 @@
 :hidden:
 
 usage.md
-example.ipynb
 changelog.md
 contributing.md
 conduct.md

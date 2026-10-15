@@ -1,8 +1,8 @@
 """Public, class-based API for FLOWGEM.
 
-Wraps the core sampler behind a scikit-learn-style fit/generate interface.
-The user supplies a single incomplete array with NaN marking missing entries;
-the observation mask and the particle initialisation are handled internally.
+It wraps the core sampler behind a scikit-learn-style fit/generate interface.
+The user gives a single incomplete array with NaN marked missing entries.
+The observation mask and the particle initialisation are done internally.
 """
 
 import numpy as np
@@ -12,29 +12,29 @@ from flowgem.core import sample_flowgem
 
 
 class FlowGEM:
-    """Generative sampler for missing-at-random (MAR) data via an approximate
+    """Generative sampler for *missing at random (MAR)* data via approximate
     Wasserstein gradient flow.
 
-    The user provides a single incomplete array in which missing entries are
-    marked with NaN; the observation mask and the initial particle ensemble are
-    constructed internally. The interface follows the scikit-learn-style
+    The user provides an incomplete array with missing entries
+    marked as NaN. The observation mask and the initial particle ensemble are
+    build internally. The interface follows the scikit-learn-style
     fit / generate pattern.
 
     Parameters
     ----------
     T : int, default=1000
-        Number of gradient-flow (time) steps.
+        Number of gradient flow (time) steps.
     eta : float, default=0.01
-        Step size of the forward-Euler update.
+        Step size of the forward Euler update.
     sigma : float, list of float, or None, default=None
-        Kernel bandwidth. If None, a median heuristic is used; a float fixes
-        the bandwidth; a list triggers cross-validation over the candidates.
-    init : {"mice", "sample"} or array-like, default="mice"
-        How the initial particles are constructed. "mice" imputes with the 
-        hyperimpute MICE implementation; "sample" resamples observed values 
-        column-wise; an array is used directly as the initialisation.
+        Kernel bandwidth. If None, a median heuristic is used. A float fixes
+        the bandwidth. A list triggers (CV) cross validation over candidates.
+    init : {"mice", "sample"} or array type, default="mice"
+        How the initial particles are constructed. "mice" imputes first with 
+        hyperimpute MICE implementation. "sample" resamples observed values 
+        column-wise. An array can be used directly as the initialisation.
     grad_tol : float, default=0.01
-        Early-stopping tolerance on the relative gradient norm.
+        Early stopping tolerance on the relative gradient norm.
     min_iter : int, default=10
         Minimum number of steps before early stopping may trigger.
     dtype : torch.dtype, default=torch.float64
@@ -45,7 +45,7 @@ class FlowGEM:
     Attributes
     ----------
     mask_ : torch.Tensor
-        Observation mask inferred in fit(); 1 marks an observed entry.
+        Observation mask built in fit(); 1 marks an observed entry.
     X_obs_ : torch.Tensor
         Observed data with missing entries filled by zero.
     X0_ : torch.Tensor
@@ -78,7 +78,7 @@ class FlowGEM:
 
         Parameters
         ----------
-        X_incomplete : array-like of shape (n_samples, d_features)
+        X_incomplete : array like of shape (n_samples, d_features)
             Input data with missing entries marked as NaN.
 
         Returns
@@ -89,8 +89,8 @@ class FlowGEM:
         Raises
         ------
         ValueError
-            If the input is not 2D, contains no NaN (nothing missing), or
-            contains infinite values.
+            If the input is not 2D, contains no NaN (nothing is missing), or
+            has infinite values.
         """
         # accept numpy arrays, lists, or tensors; work in the chosen dtype
         X = torch.as_tensor(X_incomplete, dtype=self.dtype)
@@ -101,23 +101,23 @@ class FlowGEM:
             )
         if not torch.isnan(X).any():
             raise ValueError(
-                "X_incomplete has no NaN values; nothing is marked as missing. "
+                "X_incomplete has no NaN values, nothing is marked as missing. "
                 "Mark missing entries with NaN."
             )
         if torch.isinf(X).any():
             raise ValueError(
-                "X_incomplete contains infinite values; only finite values "
+                "X_incomplete contains infinite values. Only finite values "
                 "and NaN (for missing entries) are supported."
             )
 
         # observation mask: 1 = observed, 0 = missing  (code's convention)
         self.mask_ = (~torch.isnan(X)).to(self.dtype)
 
-        # observed data with NaN filled by 0 as a placeholder
-        # (the sampler uses only the observed columns per pattern, via the mask)
+        # observed data, NaN filled by 0 as a placeholder
+        # (the sampler reads only the observed columns per pattern, through the mask)
         self.X_obs_ = torch.nan_to_num(X, nan=0.0)
 
-        # initial particles, built from the incomplete data per self.init
+        # initial particles, built from the incomplete data according to self.init
         self.X0_ = self._build_X0(X)
 
         return self
