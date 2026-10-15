@@ -1,6 +1,6 @@
 """Golden (regression) tests for sample_flowgem (the core WGF sampler).
 
-Unlike the per-function tests, sample_flowgem is stateful and returns a full
+Unlike the per function tests, sample_flowgem is stateful and returns a full
 trajectory of particle snapshots. The golden test therefore compares the entire
 trajectory, snapshot by snapshot, against the reference implementation.
 """

@@ -1,8 +1,9 @@
 """Public, class-based API for FLOWGEM.
 
-It wraps the core sampler behind a scikit-learn-style fit/generate interface.
-The user gives a single incomplete array with NaN marked missing entries.
-The observation mask and the particle initialisation are done internally.
+Wraps the core sampler in a scikit-learn-style fit/generate interface. The
+user gives one incomplete array with NaN as missing entries. The
+observation mask is built in fit(), and a fresh initial ensemble is built on
+each generate() call.
 """
 
 import numpy as np
@@ -12,44 +13,48 @@ from flowgem.core import sample_flowgem
 
 
 class FlowGEM:
-    """Generative sampler for *missing at random (MAR)* data via approximate
+    """Generative sampler for missing at random (MAR) data via an approximate
     Wasserstein gradient flow.
 
-    The user provides an incomplete array with missing entries
-    marked as NaN. The observation mask and the initial particle ensemble are
-    build internally. The interface follows the scikit-learn-style
-    fit / generate pattern.
+    The user passes one incomplete array with NaN marking the missing entries.
+    The observation mask and the initial particle ensemble are built
+    internally. The interface follows the scikit-learn fit/generate pattern.
+
+    Each generate() call draws a fresh initial ensemble, so repeated calls
+    return different samples. With a fixed random_state the sequence of calls
+    is reproducible.
 
     Parameters
     ----------
     T : int, default=1000
-        Number of gradient flow (time) steps.
+        Number of gradient-flow (time) steps.
     eta : float, default=0.01
-        Step size of the forward Euler update.
+        Step size of the forward-Euler update.
     sigma : float, list of float, or None, default=None
-        Kernel bandwidth. If None, a median heuristic is used. A float fixes
-        the bandwidth. A list triggers (CV) cross validation over candidates.
-    init : {"mice", "sample"} or array type, default="mice"
-        How the initial particles are constructed. "mice" imputes first with 
-        hyperimpute MICE implementation. "sample" resamples observed values 
-        column-wise. An array can be used directly as the initialisation.
+        Kernel bandwidth. If None, a median heuristic picks it. A float fixes
+        the bandwidth. A list is cross-validated over the candidates.
+    init : {"mice", "sample"} or array-like, default="mice"
+        How the initial particles are built. "mice" imputes with the
+        hyperimpute MICE implementation. "sample" resamples observed values
+        column by column. An array is used directly as the initialisation.
     grad_tol : float, default=0.01
-        Early stopping tolerance on the relative gradient norm.
+        Early-stopping tolerance on the relative gradient norm.
     min_iter : int, default=10
         Minimum number of steps before early stopping may trigger.
     dtype : torch.dtype, default=torch.float64
         Numerical precision used throughout.
     random_state : int or None, default=None
-        Seed for the (stochastic) initialisation, for reproducibility.
+        Seed for the sequence of generate() calls, for reproducibility.
 
     Attributes
     ----------
     mask_ : torch.Tensor
-        Observation mask built in fit(); 1 marks an observed entry.
+        Observation mask built in fit(). A 1 marks an observed entry.
     X_obs_ : torch.Tensor
         Observed data with missing entries filled by zero.
-    X0_ : torch.Tensor
-        The initial particle ensemble constructed in fit().
+    X_incomplete_ : torch.Tensor
+        The incomplete data kept from fit(), used to build a fresh initial
+        ensemble on each generate() call.
 
     Examples
     --------
@@ -78,21 +83,21 @@ class FlowGEM:
 
         Parameters
         ----------
-        X_incomplete : array like of shape (n_samples, d_features)
+        X_incomplete : array-like of shape (n_samples, d_features)
             Input data with missing entries marked as NaN.
 
         Returns
         -------
         self : FlowGEM
-            The fitted instance (enables fit(...).generate() chaining).
+            The fitted instance, so fit(...).generate() can be chained.
 
         Raises
         ------
         ValueError
-            If the input is not 2D, contains no NaN (nothing is missing), or
+            If the input is not 2D, has no NaN (nothing marked missing), or
             has infinite values.
         """
-        # accept numpy arrays, lists, or tensors; work in the chosen dtype
+        # accept numpy arrays, lists, or tensors, in the chosen dtype
         X = torch.as_tensor(X_incomplete, dtype=self.dtype)
 
         if X.ndim != 2:
@@ -101,35 +106,41 @@ class FlowGEM:
             )
         if not torch.isnan(X).any():
             raise ValueError(
-                "X_incomplete has no NaN values, nothing is marked as missing. "
+                "X_incomplete has no NaN values; nothing is marked as missing. "
                 "Mark missing entries with NaN."
             )
         if torch.isinf(X).any():
             raise ValueError(
-                "X_incomplete contains infinite values. Only finite values "
+                "X_incomplete contains infinite values; only finite values "
                 "and NaN (for missing entries) are supported."
             )
 
-        # observation mask: 1 = observed, 0 = missing  (code's convention)
+        # observation mask: 1 = observed, 0 = missing (matches the core code)
         self.mask_ = (~torch.isnan(X)).to(self.dtype)
 
-        # observed data, NaN filled by 0 as a placeholder
-        # (the sampler reads only the observed columns per pattern, through the mask)
+        # observed data, NaN filled with 0 as a placeholder
+        # (the sampler reads only the observed entries, through the mask)
         self.X_obs_ = torch.nan_to_num(X, nan=0.0)
 
-        # initial particles, built from the incomplete data according to self.init
-        self.X0_ = self._build_X0(X)
+        # keep the incomplete data: the initial ensemble is rebuilt on each
+        # generate() call, so repeated calls give different samples
+        self.X_incomplete_ = X
+
+        # persistent RNG for the sequence of generate() calls. With a fixed
+        # random_state the calls differ but the whole sequence is reproducible.
+        self._rng = np.random.default_rng(self.random_state)
 
         return self
 
-    def _build_X0(self, X):
-        """Construct the initial particle ensemble from the incomplete data.
+    def _build_X0(self, X, seed):
+        """Build an initial particle ensemble from the incomplete data.
 
-        X is the incomplete tensor (with NaN). Returns a complete X0 tensor.
+        X is the incomplete tensor (with NaN). seed makes the construction
+        reproducible. Returns a complete X0 tensor.
         """
         init = self.init
 
-        # case 1: user supplied their own initialisation array
+        # case 1: user supplied their own initialisation array (deterministic)
         if not isinstance(init, str):
             X0 = torch.as_tensor(init, dtype=self.dtype)
             if X0.shape != X.shape:
@@ -143,19 +154,14 @@ class FlowGEM:
         if init == "mice":
             from hyperimpute.plugins.imputers import Imputers
 
-            kwargs = {}
-            if self.random_state is not None:
-                kwargs["random_state"] = self.random_state
-            imputer = Imputers().get("mice", **kwargs)
+            imputer = Imputers().get("mice", random_state=seed)
             X0_np = imputer.fit_transform(X.cpu().numpy())
             X0_np = np.asarray(X0_np, dtype=float).copy()
             return torch.as_tensor(X0_np, dtype=self.dtype)
 
-        # case 3: column-wise resampling of observed values (paper's simulation init)
+        # case 3: resample observed values column by column (the paper's simulation init)
         if init == "sample":
-            g = None
-            if self.random_state is not None:
-                g = torch.Generator().manual_seed(self.random_state)
+            g = torch.Generator().manual_seed(seed)
 
             X0 = X.clone()
             _, d = X.shape
@@ -178,11 +184,15 @@ class FlowGEM:
     def generate(self, return_trajectory=False):
         """Generate a complete sample of the same size as the fitted data.
 
+        Each call builds a new initial ensemble Repeated calls on the
+        same model return different samples. With a fixed random_state the
+        sequence of calls is reproducible.
+
         Parameters
         ----------
         return_trajectory : bool
-            If False (default), return only the final sample as a tensor of
-            shape (n, d). If True, return the full list of per-step snapshots.
+            If False (default), return only the final sample, of shape (n, d).
+            If True, return the full list of per step snapshots.
 
         Returns
         -------
@@ -194,9 +204,16 @@ class FlowGEM:
         ------
         RuntimeError
             If called before fit().
+
+        Notes
+        -----
+        With init="mice" each call re runs MICE, which can be slow.
         """
-        if not hasattr(self, "X0_"):
+        if not hasattr(self, "X_incomplete_"):
             raise RuntimeError("Call fit(...) before generate().")
+
+        # fresh per-call seed drawn from the persistent RNG
+        call_seed = int(self._rng.integers(0, 2**31 - 1))
 
         # sigma handling: None -> heuristic (sigma_fix=None, sigma_vals=None)
         #                 float -> fixed
@@ -208,18 +225,27 @@ class FlowGEM:
         elif self.sigma is not None:
             sigma_vals = self.sigma
 
-        Xhats = sample_flowgem(
-            self.X0_,
-            self.X_obs_,
-            self.mask_,
-            T=self.T,
-            eta=self.eta,
-            grad_tol=self.grad_tol,
-            min_iter=self.min_iter,
-            sigma_fix=sigma_fix,
-            sigma_vals=sigma_vals,
-            dtype=self.dtype,
-        )
+        # build a fresh initial ensemble for this call, and seed torch so the
+        # bandwidth heuristic is reproducible. Save and restore the global RNG
+        # state so the user's other torch code is not disturbed.
+        rng_state = torch.random.get_rng_state()
+        try:
+            torch.manual_seed(call_seed)
+            X0 = self._build_X0(self.X_incomplete_, call_seed)
+            Xhats = sample_flowgem(
+                X0,
+                self.X_obs_,
+                self.mask_,
+                T=self.T,
+                eta=self.eta,
+                grad_tol=self.grad_tol,
+                min_iter=self.min_iter,
+                sigma_fix=sigma_fix,
+                sigma_vals=sigma_vals,
+                dtype=self.dtype,
+            )
+        finally:
+            torch.random.set_rng_state(rng_state)
 
         # return the full trajectory or just the final snapshot (as numpy arrays)
         if return_trajectory:

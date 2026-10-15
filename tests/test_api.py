@@ -1,7 +1,7 @@
 """Tests for the public FlowGEM class (api.py).
 
-These are behavioural tests: the class is new code with no reference to
-compare against, so they check that it does what the interface promises
+These are behavioural tests. The class is code with no reference to
+compare against, so it check that it does what the interface promises
 rather than matching an original implementation.
 """
 
@@ -55,11 +55,12 @@ def test_mask_is_inferred_from_nan():
 
 @pytest.mark.parametrize("init", ["mice", "sample"])
 def test_init_modes_produce_complete_X0(init):
-    """Both string init modes yield an X0 with no missing values."""
+    """Both string init modes build an X0 with no missing values."""
     X = make_incomplete()
     model = FlowGEM(init=init, random_state=0).fit(X)
-    assert not np.isnan(model.X0_).any()
-    assert model.X0_.shape == X.shape
+    X0 = model._build_X0(model.X_incomplete_, seed=0)
+    assert not torch.isnan(X0).any()
+    assert X0.shape == X.shape
 
 
 def test_init_array_is_used():
@@ -67,7 +68,8 @@ def test_init_array_is_used():
     X = make_incomplete(n=10, d=3)
     my_X0 = torch.zeros(10, 3, dtype=torch.float64)
     model = FlowGEM(init=my_X0).fit(X)
-    assert torch.equal(model.X0_, my_X0)
+    X0 = model._build_X0(model.X_incomplete_, seed=0)
+    assert torch.equal(X0, my_X0)
 
 
 # ---- validation and guards ------------------------------------------------
@@ -92,11 +94,31 @@ def test_generate_before_fit_raises():
 # ---- reproducibility ------------------------------------------------------
 
 def test_random_state_is_reproducible():
-    """Same random_state -> identical output."""
+    """Same random_state -> identical output for the first call."""
     X = make_incomplete()
     out1 = FlowGEM(T=5, sigma=1.0, random_state=42).fit(X).generate()
     out2 = FlowGEM(T=5, sigma=1.0, random_state=42).fit(X).generate()
     assert np.allclose(out1, out2)
+
+
+def test_repeated_calls_differ_but_sequence_reproducible():
+    """Each generate() call draws a fresh sample. For a fixed random_state the
+    sequence of calls is reproducible across separate models."""
+    X = make_incomplete()
+
+    m1 = FlowGEM(T=5, sigma=1.0, init="sample", random_state=0).fit(X)
+    a1 = m1.generate()
+    b1 = m1.generate()
+
+    # successive calls on the same model give different samples
+    assert not np.allclose(a1, b1)
+
+    # a second model with the same seed reproduces the same sequence
+    m2 = FlowGEM(T=5, sigma=1.0, init="sample", random_state=0).fit(X)
+    a2 = m2.generate()
+    b2 = m2.generate()
+    assert np.allclose(a1, a2)
+    assert np.allclose(b1, b2)
 
 
 # ---- trajectory option ----------------------------------------------------
@@ -105,10 +127,11 @@ def test_generate_trajectory_returns_list():
     """return_trajectory=True yields the full per-step trajectory."""
     X = make_incomplete()
     T = 5
-    model = FlowGEM(T=T, sigma=1.0, random_state=0).fit(X)
 
-    traj = model.generate(return_trajectory=True)
-    final = model.generate(return_trajectory=False)
+    # one model for the trajectory, a second (same seed) for the final-only
+    # output, so both come from a first call and can be compared
+    traj = FlowGEM(T=T, sigma=1.0, random_state=0).fit(X).generate(return_trajectory=True)
+    final = FlowGEM(T=T, sigma=1.0, random_state=0).fit(X).generate()
 
     # a list of snapshots, each the right shape
     assert isinstance(traj, list)
@@ -153,7 +176,7 @@ def test_tiny_dataset():
 def test_few_missing_patterns():
     """A dataset with very few distinct missingness patterns must work.
 
-    Every column keeps some observed values (no column is fully missing).
+    Every column should have some observed values (no column is fully missing).
     """
     torch.manual_seed(0)
     X = torch.randn(30, 3, dtype=torch.float64)
@@ -191,7 +214,7 @@ def test_unknown_init_raises():
     """An unrecognised init string must raise a clear error."""
     X = make_incomplete()
     with pytest.raises(ValueError):
-        FlowGEM(init="not_a_real_mode").fit(X)
+        FlowGEM(init="not_a_real_mode").fit(X).generate()
 
 
 def test_init_array_wrong_shape_raises():
@@ -199,7 +222,7 @@ def test_init_array_wrong_shape_raises():
     X = make_incomplete(n=40, d=3)
     wrong_X0 = torch.zeros(10, 3, dtype=torch.float64)   # wrong number of rows
     with pytest.raises(ValueError):
-        FlowGEM(init=wrong_X0).fit(X)
+        FlowGEM(init=wrong_X0).fit(X).generate()
 
 
 def test_sample_init_empty_column_raises():
@@ -209,7 +232,7 @@ def test_sample_init_empty_column_raises():
     X = torch.randn(20, 3, dtype=torch.float64)
     X[:, 1] = float("nan")            # column 1 has no observed values
     with pytest.raises(ValueError):
-        FlowGEM(init="sample").fit(X)
+        FlowGEM(init="sample").fit(X).generate()
 
 #-------- infinite value in data -------------------------------
 

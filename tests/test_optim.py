@@ -2,7 +2,7 @@
 
 These tests verify that the refactored implementation in `flowgem.optim`
 reproduces the original reference implementation EXACTLY. This guards the
-refactoring: the code was relocated, but its behaviour must not change.
+refactoring that the code was relocated, but its behaviour must not change.
 """
 
 import sys
